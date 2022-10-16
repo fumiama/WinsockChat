@@ -9,6 +9,8 @@ namespace WinsockChat
 {
     class CBinding
     {
+        const int CHAT_MODE_UDP = 1;
+        const int CHAT_MODE_TCP = 2;
         private bool nobinding = false;
         private IntPtr hLib;
         private int fd = 0;
@@ -24,21 +26,23 @@ namespace WinsockChat
         [DllImport("kernel32.dll")]
         private extern static bool FreeLibrary(IntPtr lib);
 
-        private delegate int Type_Init();
+        private delegate int Type_Init(IntPtr f);
         private delegate void Type_Defer();
         private Type_Defer funcDefer;
-        private delegate int Type_Bind(string ip, ref ushort port);
-        private Type_Bind funcBind;
-        private delegate int Type_Close();
-        private Type_Close funcClose;
-        private delegate int Type_Receive(IntPtr f);
-        private Type_Receive funcReceive;
-        private delegate int Type_StopReceive();
-        private Type_StopReceive funcStopReceive;
-        private delegate int Type_Ping(string ip, ushort port);
-        private Type_Ping funcPing;
+        private delegate int Type_ServerStart(string ip, ref ushort port, string name, int mode);
+        private Type_ServerStart funcServerStart;
+        private delegate int Type_ServerClose();
+        private Type_ServerClose funcServerClose;
+        private delegate int Type_ClientConnect(string ip, ushort port, int mode);
+        private Type_ClientConnect funcClientConnect;
+        private delegate int Type_ClientSendMessage(string msg, int msglen);
+        private Type_ClientSendMessage funcClientSendMessage;
+        private delegate int Type_ClientClose();
+        private Type_ClientClose funcClientClose;
 
-        public CBinding(string dllpath)
+        public delegate void Type_OnReceive(string msg);
+
+        public CBinding(string dllpath, Type_OnReceive f)
         {
             if(dllpath.Length == 0)
             {
@@ -54,7 +58,7 @@ namespace WinsockChat
             if (hLib != IntPtr.Zero)
             {
                 Type_Init funcInit = (Type_Init)Invoke("Init", typeof(Type_Init));
-                int r = funcInit();
+                int r = funcInit(Marshal.GetFunctionPointerForDelegate(f));
                 if (r < 0)
                 {
                     FreeLibrary(hLib);
@@ -62,13 +66,15 @@ namespace WinsockChat
                     throw new SystemException("Call funcInit error.");
                 }
                 funcDefer = (Type_Defer)Invoke("Defer", typeof(Type_Defer));
-                funcBind = (Type_Bind)Invoke("Bind", typeof(Type_Bind));
-                funcClose = (Type_Close)Invoke("Close", typeof(Type_Close));
-                funcReceive = (Type_Receive)Invoke("Receive", typeof(Type_Receive));
-                funcStopReceive = (Type_StopReceive)Invoke("StopReceive", typeof(Type_StopReceive));
-                funcPing = (Type_Ping)Invoke("Ping", typeof(Type_Ping));
+                funcServerStart = (Type_ServerStart)Invoke("ServerStart", typeof(Type_ServerStart));
+                funcServerClose = (Type_ServerClose)Invoke("ServerClose", typeof(Type_ServerClose));
+                funcClientConnect = (Type_ClientConnect)Invoke("ClientConnect", typeof(Type_ClientConnect));
+                funcClientSendMessage = (Type_ClientSendMessage)Invoke("ClientSendMessage", typeof(Type_ClientSendMessage));
+                funcClientClose = (Type_ClientClose)Invoke("ClientClose", typeof(Type_ClientClose));
             }
         }
+
+        private Socket stcp, sudp;
 
         ~CBinding()
         {
@@ -77,7 +83,11 @@ namespace WinsockChat
                 funcDefer();
                 FreeLibrary(hLib);
             }
-            else if (nobinding && s != null) s.Close();
+            else if (nobinding)
+            {
+                if (stcp != null) stcp.Close();
+                if (sudp != null) sudp.Close();
+            }
         }
 
         /// <summary>
@@ -89,13 +99,11 @@ namespace WinsockChat
             return Marshal.GetDelegateForFunctionPointer(api, t);
         }
 
-        private Socket s;
-
         /// <summary>
-        /// C signature: int Bind(const char* ip, unsigned short* port)
+        /// C signature: int ServerStart(const char* ip, unsigned short* port, const char* name, int mode)
         /// return socket fd
         /// </summary>
-        public int Bind(string ip, ref ushort port)
+        public int ServerStart(string ip, ref ushort port, string name, int mode)
         {
             if (ip == "") throw new ArgumentNullException("ip");
             if (nobinding)

@@ -19,7 +19,7 @@ namespace WinsockChat
                 MessageBox.Show("Invalid Parameters.", "ERROR");
                 return;
             }
-            string dllpath = "WSEcho.dll";
+            string dllpath = "WSChat.dll";
             if (args.Length == 2) dllpath = args[1];
             if (!File.Exists(dllpath))
             {

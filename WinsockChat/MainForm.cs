@@ -24,6 +24,23 @@ namespace WinsockChat
             textBoxLocalName.Text = "Listener"+ string.Format("{0:00000}", i);
             textBoxRemoteName.Text = "Sender" + string.Format("{0:00000}", i);
         }
+
+        private readonly Mutex mu = new Mutex();
+        private void OnReceive(string msg)
+        {
+            mu.WaitOne();
+            Invoke(new Action(() =>
+            {
+                textBoxChatReceive.Text += msg;
+            }));
+            mu.ReleaseMutex();
+        }
+
+        private void buttonChatClear_Click(object sender, EventArgs e)
+        {
+            mu.WaitOne();
+            textBoxChatReceive.Text = "";
+            mu.ReleaseMutex();
+        }
     }
 }
-
