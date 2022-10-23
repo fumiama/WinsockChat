@@ -196,8 +196,7 @@ namespace WinsockChat
             }
             else
             {
-                string m = servername + ": " + msg;
-                int r = funcClientSendMessage(m, m.Length);
+                int r = funcClientSendMessage(msg, msg.Length);
                 if (r < 0) throw new Exception("funcClientSendMessage error.");
             }
         }
