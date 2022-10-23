@@ -112,8 +112,11 @@ namespace WinsockChat
         {
             try
             {
-                if(textBoxChatSend.Text != "")
+                if (textBoxChatSend.Text != "")
+                {
+                    OnReceive("Me -> " + textBoxChatSend.Text);
                     cb.ClientSendMessage(textBoxChatSend.Text);
+                }
             }
             catch (Exception ex)
             {
