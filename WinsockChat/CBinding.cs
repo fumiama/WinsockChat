@@ -9,13 +9,12 @@ namespace WinsockChat
 {
     class CBinding
     {
-        const int CHAT_MODE_UDP = 1;
-        const int CHAT_MODE_TCP = 2;
         private bool nobinding = false;
         private IntPtr hLib;
         private int fd = 0;
-        private EndPoint localEP;
+        private EndPoint localEP, remoteEP;
         private bool stopRecv = true;
+        private string servername;
 
         [DllImport("kernel32.dll")]
         private extern static IntPtr LoadLibrary(string path);
@@ -42,9 +41,12 @@ namespace WinsockChat
 
         public delegate void Type_OnReceive(string msg);
 
+        private Type_OnReceive fonrecv;
+
         public CBinding(string dllpath, Type_OnReceive f)
         {
-            if(dllpath.Length == 0)
+            fonrecv = f;
+            if (dllpath.Length == 0)
             {
                 nobinding = true;
                 return;
@@ -74,7 +76,7 @@ namespace WinsockChat
             }
         }
 
-        private Socket stcp, sudp;
+        private Socket s;
 
         ~CBinding()
         {
@@ -85,8 +87,7 @@ namespace WinsockChat
             }
             else if (nobinding)
             {
-                if (stcp != null) stcp.Close();
-                if (sudp != null) sudp.Close();
+                if (s != null) s.Close();
             }
         }
 
@@ -114,110 +115,100 @@ namespace WinsockChat
                 s.Bind(localEP);
                 port = (ushort)((IPEndPoint)s.LocalEndPoint).Port;
                 fd = (int)s.Handle;
+                if (!stopRecv) throw new Exception("Dulplicate Receive.");
+                stopRecv = false;
+                servername = name;
+                byte[] buf = new byte[65535];
+                // 创建ip+port
+                EndPoint rEP = new IPEndPoint(0, 0);
+                s.BeginReceiveFrom(buf, 0, 65535, SocketFlags.None, ref rEP, ReceiveCallback(buf, fonrecv), rEP);
             } else
             {
-                fd = funcBind(ip, ref port);
+                fd = funcServerStart(ip, ref port, name, mode);
                 if (fd <= 0) throw new Exception("funcBind error.");
             }
             return fd;
         }
 
         /// <summary>
-        /// C signature: void Close(int fd)
+        /// C signature: int  ServerClose();
         /// </summary>
-        public void Close()
+        public void ServerClose()
         {
             if (fd == 0) throw new Exception("Dulplicate Close.");
-            if (nobinding) s.Close();
+            if (nobinding)
+            {
+                stopRecv = true;
+                s.Close();
+            }
             else
             {
-                int r = funcClose();
-                if (r < 0) throw new Exception("funcClose error.");
+                int r = funcServerClose();
+                if (r < 0) throw new Exception("funcServerClose error.");
             }
             fd = 0;
         }
 
-        public delegate void Type_LogListen(string msg);
-
-        /// <summary>
-        /// C signature: void Receive(void (*f) (const char* msg))
-        /// </summary>
-        public void Receive(Type_LogListen f)
-        {
-            if (fd == 0) throw new Exception("No Binding.");
-            if (!stopRecv) throw new Exception("Dulplicate Receive.");
-            stopRecv = false;
-            if (nobinding)
-            {
-                byte[] buf = new byte[65535];
-                // 创建ip+port
-                EndPoint remoteEP = new IPEndPoint(0, 0);
-                s.BeginReceiveFrom(buf, 0, 65535, SocketFlags.None, ref remoteEP, ReceiveCallback(buf, f), remoteEP);
-            }
-            else
-            {
-                stopRecv = funcReceive(Marshal.GetFunctionPointerForDelegate(f)) < 0;
-            }
-        }
-
-        private AsyncCallback ReceiveCallback(byte[] buf, Type_LogListen f)
+        private AsyncCallback ReceiveCallback(byte[] buf, Type_OnReceive f)
         {
             return ar =>
             {
                 try
                 {
-                    EndPoint remoteEP = (EndPoint)ar.AsyncState;
-                    int n = s.EndReceiveFrom(ar, ref remoteEP);
+                    EndPoint rEP = (EndPoint)ar.AsyncState;
+                    int n = s.EndReceiveFrom(ar, ref rEP);
                     if (n > 0)
                     {
-                        s.SendTo(buf, 0, n, SocketFlags.None, remoteEP);
                         // 将数据流转成字符串
-                        string msg = Encoding.Default.GetString(buf, 0, n);
-                        f("[" + remoteEP.ToString() + "] " + msg);
+                        string msg = Encoding.Unicode.GetString(buf, 0, n);
+                        f("[" + rEP.ToString() + "] " + msg);
                     }
-                    if (!stopRecv) s.BeginReceiveFrom(buf, 0, 65535, SocketFlags.None, ref remoteEP, ReceiveCallback(buf, f), remoteEP);
-                } catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, ex.GetType().Name);
-                }
+                    if (!stopRecv) s.BeginReceiveFrom(buf, 0, 65535, SocketFlags.None, ref rEP, ReceiveCallback(buf, f), rEP);
+                } catch (Exception) { }
             };
         }
 
         /// <summary>
-        /// C signature: void StopReceive()
+        /// C signature: int  ClientConnect(const char* ip, unsigned short port, int mode);
         /// </summary>
-        public void StopReceive()
-        {
-            if (fd == 0) throw new Exception("No Binding.");
-            if (stopRecv) return;
-            stopRecv = true;
-            if (!nobinding)
-            {
-                int r = funcStopReceive();
-                if (r < 0) throw new Exception("funcStopReceive error.");
-            }
-        }
-
-        byte[] pingbuf = new byte[65535];
-        /// <summary>
-        /// C signature: int Ping(const char* ip, unsigned short port)
-        /// </summary>
-        public void Ping(string ip, ushort port)
+        public int ClientConnect(string ip, ushort port, int mode)
         {
             if (nobinding)
             {
-                EndPoint rep = new IPEndPoint(IPAddress.Parse(ip), port);
+                remoteEP = new IPEndPoint(IPAddress.Parse(ip), port);
+                return 0;
+            }
+            return funcClientConnect(ip, port, mode);
+        }
+
+        /// <summary>
+        /// C signature: int  ClientSendMessage(const char* msg, int msglen);
+        /// </summary>
+        public void ClientSendMessage(string msg)
+        {
+            if (nobinding)
+            {
+                EndPoint rep = remoteEP;
                 Socket tmp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 tmp.Bind(new IPEndPoint(0, 0));
-                tmp.SendTo(Encoding.Default.GetBytes(DateTime.Now.ToString()), rep);
-                tmp.ReceiveFrom(pingbuf, ref rep);
+                tmp.SendTo(Encoding.Unicode.GetBytes(servername + ": " + msg), rep);
                 tmp.Close();
             }
             else
             {
-                int r = funcPing(ip, port);
-                if (r < 0) throw new Exception("funcPing error.");
+                string m = servername + ": " + msg;
+                int r = funcClientSendMessage(m, m.Length);
+                if (r < 0) throw new Exception("funcClientSendMessage error.");
             }
+        }
+
+        /// <summary>
+        /// C signature: int  ClientClose();
+        /// </summary>
+        public void ClientClose()
+        {
+            if (nobinding) return;
+            funcClientClose();
         }
     }
 }

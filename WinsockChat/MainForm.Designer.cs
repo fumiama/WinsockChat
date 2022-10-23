@@ -39,7 +39,6 @@ namespace WinsockChat
             this.labelLocalIP = new System.Windows.Forms.Label();
             this.textBoxLocalIP = new System.Windows.Forms.TextBox();
             this.groupBoxRemoteProp = new System.Windows.Forms.GroupBox();
-            this.textBoxRemoteName = new System.Windows.Forms.TextBox();
             this.radioButtonRemoteUDP = new System.Windows.Forms.RadioButton();
             this.radioButtonRemoteTCP = new System.Windows.Forms.RadioButton();
             this.buttonRemoteConnect = new System.Windows.Forms.Button();
@@ -49,9 +48,9 @@ namespace WinsockChat
             this.textBoxRemoteIP = new System.Windows.Forms.TextBox();
             this.textBoxChatReceive = new System.Windows.Forms.TextBox();
             this.groupBoxChat = new System.Windows.Forms.GroupBox();
+            this.buttonChatClear = new System.Windows.Forms.Button();
             this.buttonChatSend = new System.Windows.Forms.Button();
             this.textBoxChatSend = new System.Windows.Forms.TextBox();
-            this.buttonChatClear = new System.Windows.Forms.Button();
             this.groupBoxLocalProp.SuspendLayout();
             this.groupBoxRemoteProp.SuspendLayout();
             this.groupBoxChat.SuspendLayout();
@@ -112,6 +111,7 @@ namespace WinsockChat
             this.buttonLocalListen.TabIndex = 6;
             this.buttonLocalListen.Text = "listen";
             this.buttonLocalListen.UseVisualStyleBackColor = true;
+            this.buttonLocalListen.Click += new System.EventHandler(this.buttonLocalListen_Click);
             // 
             // textBoxLocalPort
             // 
@@ -149,7 +149,6 @@ namespace WinsockChat
             // 
             this.groupBoxRemoteProp.AutoSize = true;
             this.groupBoxRemoteProp.BackColor = System.Drawing.Color.Transparent;
-            this.groupBoxRemoteProp.Controls.Add(this.textBoxRemoteName);
             this.groupBoxRemoteProp.Controls.Add(this.radioButtonRemoteUDP);
             this.groupBoxRemoteProp.Controls.Add(this.radioButtonRemoteTCP);
             this.groupBoxRemoteProp.Controls.Add(this.buttonRemoteConnect);
@@ -164,13 +163,6 @@ namespace WinsockChat
             this.groupBoxRemoteProp.TabIndex = 9;
             this.groupBoxRemoteProp.TabStop = false;
             this.groupBoxRemoteProp.Text = "Remote Properties";
-            // 
-            // textBoxRemoteName
-            // 
-            this.textBoxRemoteName.Location = new System.Drawing.Point(246, 131);
-            this.textBoxRemoteName.Name = "textBoxRemoteName";
-            this.textBoxRemoteName.Size = new System.Drawing.Size(217, 43);
-            this.textBoxRemoteName.TabIndex = 13;
             // 
             // radioButtonRemoteUDP
             // 
@@ -196,12 +188,13 @@ namespace WinsockChat
             // 
             // buttonRemoteConnect
             // 
-            this.buttonRemoteConnect.Location = new System.Drawing.Point(469, 122);
+            this.buttonRemoteConnect.Location = new System.Drawing.Point(246, 122);
             this.buttonRemoteConnect.Name = "buttonRemoteConnect";
-            this.buttonRemoteConnect.Size = new System.Drawing.Size(169, 60);
+            this.buttonRemoteConnect.Size = new System.Drawing.Size(392, 60);
             this.buttonRemoteConnect.TabIndex = 8;
             this.buttonRemoteConnect.Text = "connect";
             this.buttonRemoteConnect.UseVisualStyleBackColor = true;
+            this.buttonRemoteConnect.Click += new System.EventHandler(this.buttonRemoteConnect_Click);
             // 
             // textBoxRemotePort
             // 
@@ -245,7 +238,7 @@ namespace WinsockChat
             this.textBoxChatReceive.ReadOnly = true;
             this.textBoxChatReceive.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.textBoxChatReceive.Size = new System.Drawing.Size(606, 350);
-            this.textBoxChatReceive.TabIndex = 7;
+            this.textBoxChatReceive.TabIndex = 8;
             // 
             // groupBoxChat
             // 
@@ -263,27 +256,6 @@ namespace WinsockChat
             this.groupBoxChat.TabStop = false;
             this.groupBoxChat.Text = "Chat";
             // 
-            // buttonChatSend
-            // 
-            this.buttonChatSend.BackColor = System.Drawing.Color.LightSkyBlue;
-            this.buttonChatSend.Location = new System.Drawing.Point(481, 477);
-            this.buttonChatSend.Name = "buttonChatSend";
-            this.buttonChatSend.Size = new System.Drawing.Size(157, 55);
-            this.buttonChatSend.TabIndex = 9;
-            this.buttonChatSend.Text = "send";
-            this.buttonChatSend.UseVisualStyleBackColor = false;
-            // 
-            // textBoxChatSend
-            // 
-            this.textBoxChatSend.AcceptsReturn = true;
-            this.textBoxChatSend.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBoxChatSend.Location = new System.Drawing.Point(29, 416);
-            this.textBoxChatSend.Multiline = true;
-            this.textBoxChatSend.Name = "textBoxChatSend";
-            this.textBoxChatSend.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxChatSend.Size = new System.Drawing.Size(434, 116);
-            this.textBoxChatSend.TabIndex = 8;
-            // 
             // buttonChatClear
             // 
             this.buttonChatClear.BackColor = System.Drawing.Color.LightCoral;
@@ -294,6 +266,27 @@ namespace WinsockChat
             this.buttonChatClear.Text = "clear";
             this.buttonChatClear.UseVisualStyleBackColor = false;
             this.buttonChatClear.Click += new System.EventHandler(this.buttonChatClear_Click);
+            // 
+            // buttonChatSend
+            // 
+            this.buttonChatSend.BackColor = System.Drawing.Color.LightSkyBlue;
+            this.buttonChatSend.Location = new System.Drawing.Point(481, 477);
+            this.buttonChatSend.Name = "buttonChatSend";
+            this.buttonChatSend.Size = new System.Drawing.Size(157, 55);
+            this.buttonChatSend.TabIndex = 9;
+            this.buttonChatSend.Text = "send";
+            this.buttonChatSend.UseVisualStyleBackColor = false;
+            this.buttonChatSend.Click += new System.EventHandler(this.buttonChatSend_Click);
+            // 
+            // textBoxChatSend
+            // 
+            this.textBoxChatSend.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBoxChatSend.Location = new System.Drawing.Point(29, 416);
+            this.textBoxChatSend.Multiline = true;
+            this.textBoxChatSend.Name = "textBoxChatSend";
+            this.textBoxChatSend.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.textBoxChatSend.Size = new System.Drawing.Size(434, 116);
+            this.textBoxChatSend.TabIndex = 8;
             // 
             // MainForm
             // 
@@ -346,7 +339,6 @@ namespace WinsockChat
         private System.Windows.Forms.RadioButton radioButtonRemoteUDP;
         private System.Windows.Forms.RadioButton radioButtonRemoteTCP;
         private System.Windows.Forms.TextBox textBoxLocalName;
-        private System.Windows.Forms.TextBox textBoxRemoteName;
         private System.Windows.Forms.Button buttonRemoteConnect;
         private System.Windows.Forms.Button buttonChatClear;
     }

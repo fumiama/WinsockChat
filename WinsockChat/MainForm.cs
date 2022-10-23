@@ -12,7 +12,7 @@ namespace WinsockChat
         {
             try
             {
-                cb = new CBinding(dllpath);
+                cb = new CBinding(dllpath, OnReceive);
             }
             catch (Exception ex)
             {
@@ -21,8 +21,7 @@ namespace WinsockChat
             InitializeComponent();
             var r = new Random();
             var i = r.Next(0, 99999);
-            textBoxLocalName.Text = "Listener"+ string.Format("{0:00000}", i);
-            textBoxRemoteName.Text = "Sender" + string.Format("{0:00000}", i);
+            textBoxLocalName.Text = "User"+ string.Format("{0:00000}", i);
         }
 
         private readonly Mutex mu = new Mutex();
@@ -31,7 +30,9 @@ namespace WinsockChat
             mu.WaitOne();
             Invoke(new Action(() =>
             {
-                textBoxChatReceive.Text += msg;
+                textBoxChatReceive.Text += msg + "\r\n";
+                textBoxChatReceive.SelectionStart = textBoxChatReceive.Text.Length;
+                textBoxChatReceive.ScrollToCaret();
             }));
             mu.ReleaseMutex();
         }
@@ -41,6 +42,83 @@ namespace WinsockChat
             mu.WaitOne();
             textBoxChatReceive.Text = "";
             mu.ReleaseMutex();
+        }
+
+        private void buttonLocalListen_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (buttonLocalListen.Text == "listen")
+                {
+                    int mode = 0;
+                    if(checkBoxLocalUDP.Checked) mode |= 1;
+                    if (checkBoxLocalTCP.Checked) mode |= 2;
+                    if(mode == 0)
+                    {
+                        throw new Exception("NULL protocol.");
+                    }
+                    ushort port = ushort.Parse(textBoxLocalPort.Text);
+                    cb.ServerStart(textBoxLocalIP.Text, ref port, textBoxLocalName.Text, mode);
+                    textBoxLocalPort.Text = port.ToString();
+                    buttonLocalListen.Text = "close";
+                } else
+                {
+                    cb.ServerClose();
+                    buttonLocalListen.Text = "listen";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, ex.GetType().Name);
+            }
+        }
+
+        private void buttonRemoteConnect_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (buttonRemoteConnect.Text == "connect")
+                {
+                    int mode;
+                    if (radioButtonRemoteUDP.Checked) mode = 1;
+                    else if (radioButtonRemoteTCP.Checked) mode = 2;
+                    else
+                    {
+                        MessageBox.Show("NULL protocol.", "ERROR");
+                        return;
+                    }
+                    ushort port = ushort.Parse(textBoxRemotePort.Text);
+                    if (port == 0)
+                    {
+                        MessageBox.Show("Invalid Remote Port.", "ERROR");
+                        return;
+                    }
+                    cb.ClientConnect(textBoxRemoteIP.Text, port, mode);
+                    buttonRemoteConnect.Text = "close";
+                }
+                else
+                {
+                    cb.ClientClose();
+                    buttonRemoteConnect.Text = "connect";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, ex.GetType().Name);
+            }
+        }
+
+        private void buttonChatSend_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if(textBoxChatSend.Text != "")
+                    cb.ClientSendMessage(textBoxChatSend.Text);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, ex.GetType().Name);
+            }
         }
     }
 }
