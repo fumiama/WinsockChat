@@ -1,7 +1,7 @@
 # WinsockChat
 A simple socket chat resolution.
 
-![image](https://user-images.githubusercontent.com/41315874/196026670-9448c5fc-c38e-44de-838f-3ecc84733a0b.png)
+![image]（https://user-images.githubusercontent.com/41315874/197382904-6a2f2880-d8a5-4b68-afad-f3251d52dca5.png)
 
 ## C-Binding API
 > Minus return value represents an error
