@@ -1,9 +1,9 @@
 # WinsockChat
 A simple socket chat resolution.
 
-![image](https://user-images.githubusercontent.com/41315874/197382904-6a2f2880-d8a5-4b68-afad-f3251d52dca5.png)
+![image](https://user-images.githubusercontent.com/41315874/198241329-8addfa89-746a-4689-a5de-e9c7a2e14617.JPG)
 
-## C-Binding API
+## [C-Binding API](https://github.com/wa-kakalala/WSChatDLL)
 > Minus return value represents an error
 ```c
 #define CHAT_MODE_UDP (1)
