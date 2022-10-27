@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace WinsockChat
@@ -28,7 +29,7 @@ namespace WinsockChat
         private delegate int Type_Init(IntPtr f);
         private delegate void Type_Defer();
         private Type_Defer funcDefer;
-        private delegate int Type_ServerStart(string ip, ref ushort port, string name, int mode);
+        private delegate int Type_ServerStart(string ip,ushort port, string name, int mode);
         private Type_ServerStart funcServerStart;
         private delegate int Type_ServerClose();
         private Type_ServerClose funcServerClose;
@@ -83,12 +84,14 @@ namespace WinsockChat
             if (hLib != IntPtr.Zero)
             {
                 funcDefer();
+                serThread.Abort();
                 FreeLibrary(hLib);
             }
             else if (nobinding)
             {
                 if (s != null) s.Close();
             }
+
         }
 
         /// <summary>
@@ -100,11 +103,15 @@ namespace WinsockChat
             return Marshal.GetDelegateForFunctionPointer(api, t);
         }
 
+        private Thread serThread;
+
+
+
         /// <summary>
         /// C signature: int ServerStart(const char* ip, unsigned short* port, const char* name, int mode)
         /// return socket fd
         /// </summary>
-        public int ServerStart(string ip, ref ushort port, string name, int mode)
+        public int ServerStart(string ip, ushort port, string name, int mode)
         {
             if (ip == "") throw new ArgumentNullException("ip");
             if (nobinding)
@@ -124,8 +131,11 @@ namespace WinsockChat
                 s.BeginReceiveFrom(buf, 0, 65535, SocketFlags.None, ref rEP, ReceiveCallback(buf, fonrecv), rEP);
             } else
             {
-                fd = funcServerStart(ip, ref port, name, mode);
-                if (fd <= 0) throw new Exception("funcBind error.");
+                serThread = new Thread( () => {
+                    fd = funcServerStart(ip,port, name, mode);
+                });
+                serThread.Start();
+                
             }
             return fd;
         }
@@ -143,6 +153,7 @@ namespace WinsockChat
             }
             else
             {
+                serThread.Abort();
                 int r = funcServerClose();
                 if (r < 0) throw new Exception("funcServerClose error.");
             }
@@ -196,7 +207,7 @@ namespace WinsockChat
             }
             else
             {
-                int r = funcClientSendMessage(msg, msg.Length);
+                int r = funcClientSendMessage(msg, System.Text.Encoding.Default.GetByteCount(msg));
                 if (r < 0) throw new Exception("funcClientSendMessage error.");
             }
         }

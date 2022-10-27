@@ -58,7 +58,7 @@ namespace WinsockChat
                         throw new Exception("NULL protocol.");
                     }
                     ushort port = ushort.Parse(textBoxLocalPort.Text);
-                    cb.ServerStart(textBoxLocalIP.Text, ref port, textBoxLocalName.Text, mode);
+                    cb.ServerStart(textBoxLocalIP.Text, port, textBoxLocalName.Text, mode);
                     textBoxLocalPort.Text = port.ToString();
                     buttonLocalListen.Text = "close";
                 } else
@@ -122,6 +122,11 @@ namespace WinsockChat
             {
                 MessageBox.Show(ex.Message, ex.GetType().Name);
             }
+        }
+
+        private void checkBoxLocalUDP_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
